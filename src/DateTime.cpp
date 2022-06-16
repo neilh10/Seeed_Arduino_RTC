@@ -347,7 +347,7 @@ bool DateTime::isValid() const {
 char *DateTime::toString(char *buffer) {
   uint8_t apTag =
       (strstr(buffer, "ap") != nullptr) || (strstr(buffer, "AP") != nullptr);
-  uint8_t hourReformatted, isPM;
+  uint8_t hourReformatted=0, isPM=false;
   if (apTag) {     // 12 Hour Mode
     if (hh == 0) { // midnight
       isPM = false;
@@ -432,6 +432,46 @@ char *DateTime::toString(char *buffer) {
     }
   }
   return buffer;
+}
+
+// From Sodaq_DS3231 - needs testing.
+/*
+ * Format an integer as %0*d
+ *
+ * Arduino formatting sucks.
+ */
+static void add0Nd(String &str, uint16_t val, size_t width)
+{
+    if (width >= 5 && val < 1000) {
+	str += '0';
+    }
+    if (width >= 4 && val < 100) {
+	str += '0';
+    }
+    if (width >= 3 && val < 100) {
+	str += '0';
+    }
+    if (width >= 2 && val < 10) {
+	str += '0';
+    }
+    str += val;
+}
+static inline void add04d(String &str, uint16_t val) { add0Nd(str, val, 4); }
+static inline void add02d(String &str, uint16_t val) { add0Nd(str, val, 2); }
+
+void DateTime::addToString(String & str) const
+{
+    add04d(str, year());
+    str += '-';
+    add02d(str, month());
+    str += '-';
+    add02d(str, date());
+    str += ' ';
+    add02d(str, hour());
+    str += ':';
+    add02d(str, minute());
+    str += ':';
+    add02d(str, second());
 }
 
 /**************************************************************************/
@@ -567,7 +607,7 @@ bool DateTime::operator==(const DateTime &right) const {
 */
 /**************************************************************************/
 String DateTime::timestamp(timestampOpt opt) {
-  char buffer[20];
+  char buffer[30];
 
   // Generate timestamp according to opt
   switch (opt) {

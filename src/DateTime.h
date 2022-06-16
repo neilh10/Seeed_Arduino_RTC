@@ -20,6 +20,8 @@
 #include "Arduino.h"
 #include "time.h"
 
+namespace seeedArduinoRtc_nm 
+{
 #define SECONDS_PER_DAY 86400L ///< 60 * 60 * 24
 #define SECONDS_FROM_1970_TO_2000                                              \
 946684800 ///< Unixtime for 2000-01-01 08:00:00, useful for initialization
@@ -105,6 +107,7 @@ public:
       @return Day of the month (1--31).
   */
   uint8_t day() const { return d; }
+  uint8_t date() const { return d; }
   /*!
       @brief  Return the hour
       @return Hour (0--23).
@@ -180,6 +183,8 @@ public:
   */
   bool operator!=(const DateTime &right) const { return !(*this == right); }
 
+  void addToString(String & str) const;
+
 protected:
   uint8_t yOff; ///< Year offset from 2000
   uint8_t m;    ///< Month 1-12
@@ -188,5 +193,6 @@ protected:
   uint8_t mm;   ///< Minutes 0-59
   uint8_t ss;   ///< Seconds 0-59
 };
-
+}; //namespace seeedArduinoRtc_nm
+using namespace seeedArduinoRtc_nm ;
 #endif // __DATETIME_H__
