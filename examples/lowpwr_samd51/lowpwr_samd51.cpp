@@ -25,6 +25,10 @@ RTC_SAMD51 internal_rtc;
 uint32_t sleepTime_secs = 0;
 uint8_t scrnPos=0;
 
+void alarmMatch0(uint32_t flag)
+{
+    semaAlarm0 = true;
+}
 void setup()
 {
     internal_rtc.begin();
@@ -78,7 +82,12 @@ void setup()
     internal_rtc.attachInterrupt(alarmMatch0); // callback while alarm is match
 
 }
-
+void wioSleep()
+{
+    //Put into low power. Expect Alarm interrupt to wake up 
+    //
+    internal_rtc.standbyMode();
+}
 void loop()
 {
     if (semaAlarm0) {
@@ -107,9 +116,8 @@ void loop()
         internal_rtc.enableAlarm(ALM_ID, internal_rtc.MATCH_SS); // match Every 
         #if defined USE_STANDBYMODE
         delay(10);
-        //Put into low power. Expect Alarm interrupt to wake up 
-        //
-        internal_rtc.standbyMode();
+
+        wioSleep();
         delay(100); //Alow USB to also wakeup
         uint32_t timeNow_secs = internal_rtc.now().unixtime();
         //if (targetWakeup_secs <= timeNow_secs) sleeping =false;
@@ -118,7 +126,7 @@ void loop()
         #endif //
     } else {
         #if defined USE_STANDBYMODE
-        internal_rtc.standbyMode();
+        wioSleep();
         uint32_t timeNow_secs = internal_rtc.now().unixtime();
         delay(10); //Alow USB to also wakeup
         Serial.print(" @ ");
@@ -132,7 +140,4 @@ void loop()
     }
 }
 
-void alarmMatch0(uint32_t flag)
-{
-    semaAlarm0 = true;
-}
+
