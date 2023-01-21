@@ -22,6 +22,9 @@ bool semaAlarm0=false;
 
 RTC_SAMD51 internal_rtc;
 
+uint32_t sleepTime_secs = 0;
+uint8_t scrnPos=0;
+
 void setup()
 {
     internal_rtc.begin();
@@ -29,7 +32,12 @@ void setup()
     //Turn off WiFi
     pinMode(RTL8720D_CHIP_PU, OUTPUT);
     digitalWrite(RTL8720D_CHIP_PU, LOW);
+    // For power off, should other pins be low
+    //SPI
+    //RTL8720D_GPIO0    //low
 
+    #define LCD_BACKLIGHT (72Ul) // Control Pin of LCD
+    
     Serial.begin(115200);
 
     while (!Serial)
@@ -48,6 +56,7 @@ void setup()
     internal_rtc.adjust(now);
 
     now = internal_rtc.now();
+    sleepTime_secs = now.unixtime();
 
     Serial.print(now.year(), DEC);
     Serial.print('/');
@@ -63,8 +72,6 @@ void setup()
     Serial.println();
 
     DateTime alarm = DateTime(now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() + ALARM0_NEW_TIME_SEC );
-
-
     internal_rtc.setAlarm(ALM_ID,alarm); // match after 15 seconds
     internal_rtc.enableAlarm(ALM_ID, internal_rtc.MATCH_SS); // match Every minute 
 
@@ -76,7 +83,7 @@ void loop()
 {
     if (semaAlarm0) {
         semaAlarm0 = false;
-        Serial.print("Alarm Match! ");
+        Serial.print("\nAlarm Match! ");
         DateTime now = internal_rtc.now();
         Serial.print(now.year(), DEC);
         Serial.print('/');
@@ -89,24 +96,38 @@ void loop()
         Serial.print(now.minute(), DEC);
         Serial.print(':');
         Serial.print(now.second(), DEC);
-        Serial.println(" ..zzz ");
+        Serial.print(" ..zzz ");
+        sleepTime_secs = now.unixtime();
+        //Serial.println(sleepTime_secs);
 
-        //DateTime alarm = DateTime(now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() + ALARM_NEW_TIME_SEC );
-        //internal_rtc.setAlarm(0,alarm);
-        //internal_rtc.enableAlarm(0, internal_rtc.MATCH_SS); // match Every 
+        //internal_rtc.disableAlarm(ALM_ID);
+        DateTime alarm = DateTime(now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() + ALARM0_NEW_TIME_SEC );
+        internal_rtc.setAlarm(ALM_ID,alarm);
+
+        internal_rtc.enableAlarm(ALM_ID, internal_rtc.MATCH_SS); // match Every 
         #if defined USE_STANDBYMODE
         delay(10);
         //Put into low power. Expect Alarm interrupt to wake up 
         //
         internal_rtc.standbyMode();
         delay(100); //Alow USB to also wakeup
-        Serial.print("..zz wakeup ");
+        uint32_t timeNow_secs = internal_rtc.now().unixtime();
+        //if (targetWakeup_secs <= timeNow_secs) sleeping =false;
+        Serial.print("..zz wakeup@ ");
+        Serial.println(timeNow_secs-sleepTime_secs);
         #endif //
     } else {
         #if defined USE_STANDBYMODE
         internal_rtc.standbyMode();
-        delay(100); //Alow USB to also wakeup
-        Serial.print(" wakeup ");
+        uint32_t timeNow_secs = internal_rtc.now().unixtime();
+        delay(10); //Alow USB to also wakeup
+        Serial.print(" @ ");
+        Serial.print(timeNow_secs-sleepTime_secs);
+        scrnPos += 10;
+        if (scrnPos>75) {
+            Serial.println();
+            scrnPos=0;
+        }
         #endif //
     }
 }
